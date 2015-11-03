@@ -4,29 +4,12 @@ import (
 	"encoding/json"
 	"github.com/boltdb/bolt"
 	"github.com/gorilla/mux"
+	"github.com/ranjib/gypsy/structs"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net/http"
 )
-
-type Material struct {
-	Type     string
-	URI      string `yaml:"uri"`
-	Metadata map[string]string
-}
-
-type Artifact struct {
-	Path string
-	Name string
-}
-
-type Pipeline struct {
-	Name      string
-	Materials []Material
-	Artifacts []Artifact
-	Scripts   []string
-}
 
 func (s *HttpServer) ListPipelines(resp http.ResponseWriter, req *http.Request) {
 	pipelines := []string{}
@@ -85,7 +68,7 @@ func (s *HttpServer) CreatePipeline(resp http.ResponseWriter, req *http.Request)
 		return
 	}
 	log.Println(string(body[:]))
-	var pipeline Pipeline
+	var pipeline structs.Pipeline
 	if err := yaml.Unmarshal(body, &pipeline); err != nil {
 		log.Warnf("Failed to unmarshal request : %v", err)
 		http.Error(resp, err.Error(), http.StatusBadRequest)

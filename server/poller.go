@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/boltdb/bolt"
 	"github.com/google/go-github/github"
+	"github.com/ranjib/gypsy/structs"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 	"strings"
@@ -38,7 +39,7 @@ func (p *Poller) poll() error {
 		c := b.Cursor()
 		for k, v := c.First(); k != nil; k, v = c.Next() {
 			log.Infof("Checking pipeline '%s' for changes", string(k[:]))
-			var pipeline Pipeline
+			var pipeline structs.Pipeline
 			if err := yaml.Unmarshal(v, &pipeline); err != nil {
 				log.Errorf("Failed to unmarshal yaml definition for pipeline %s. Error:%v", string(k[:]), v)
 				continue
@@ -54,7 +55,7 @@ func (p *Poller) poll() error {
 	return nil
 }
 
-func (p *Poller) checkMaterial(pipeline Pipeline) {
+func (p *Poller) checkMaterial(pipeline structs.Pipeline) {
 	for _, material := range pipeline.Materials {
 		switch material.Type {
 		case "github":
@@ -66,7 +67,7 @@ func (p *Poller) checkMaterial(pipeline Pipeline) {
 	}
 }
 
-func (p *Poller) checkGithubMaterial(pipeline Pipeline, material Material) {
+func (p *Poller) checkGithubMaterial(pipeline structs.Pipeline, material structs.Material) {
 	fields := strings.Split(material.URI, "/")
 	client := github.NewClient(nil)
 	log.Infof("Getting current sha at %s/%s for '%s' pipeline", fields[0], fields[1], pipeline.Name)

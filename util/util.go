@@ -1,6 +1,7 @@
 package util
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 )
 
