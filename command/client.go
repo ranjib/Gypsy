@@ -10,7 +10,7 @@ type ClientCommand struct {
 }
 
 func (c *ClientCommand) Help() string {
-	return "gypsy clinet -pipeline PIPELINE_NAME"
+	return "gypsy client -pipeline PIPELINE_NAME"
 }
 
 func (c *ClientCommand) Synopsis() string {
