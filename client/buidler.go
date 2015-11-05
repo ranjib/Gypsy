@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type Client struct {
@@ -27,7 +28,7 @@ func BuildPipeline(name string) int {
 		log.Errorf("Failed to fetch spec for pipeline %s. Error: %v", name, err1)
 		return 1
 	}
-	log.Info("Successfully downloaded pipeline spec for ", pipeline.Name)
+	log.Info("Successfully downloaded pipeline spec. Creating container for ", pipeline.Name)
 	container, err := c.CreateContainer(pipeline.Container)
 	if err != nil {
 		log.Errorf("Failed to create container for pipeline %s build. Error: %v", name, err)
@@ -97,19 +98,29 @@ func (c *Client) CreateContainer(original string) (*lxc.Container, error) {
 		log.Errorf("Failed to start cloned container %s. Error: %v", cloned, err)
 		return nil, err
 	}
+	log.Infof("Created container named: %s. Waiting for ip allocation", cloned)
+	ct.WaitIPAddresses(30 * time.Second)
 	return ct, nil
 }
 
-func (c *Client) PerformBuild(container *lxc.Container, scripts []string) error {
-	for _, cmd := range scripts {
-		log.Infof("Executing command: '%s'", cmd)
-		exitCode, err := container.RunCommandStatus(strings.Fields(cmd), lxc.AttachOptions{})
+func (c *Client) PerformBuild(container *lxc.Container, commands []structs.Command) error {
+	for _, cmd := range commands {
+		log.Infof("Executing command: '%s'", cmd.Command)
+		cwd := "/root"
+		if cmd.Cwd != "" {
+			cwd = cmd.Cwd
+		}
+		options := lxc.DefaultAttachOptions
+		options.Env = minimalEnv()
+		options.ClearEnv = true
+		options.Cwd = cwd
+		exitCode, err := container.RunCommandStatus(strings.Fields(cmd.Command), options)
 		if err != nil {
-			log.Infof("Failed to execute command: '%s'. Error: %v", cmd, err)
+			log.Infof("Failed to execute command: '%s'. Error: %v", cmd.Command, err)
 			return err
 		}
 		if exitCode != 0 {
-			log.Infof("Failed to execute command: '%s'. Exit code: %d", cmd, exitCode)
+			log.Infof("Failed to execute command: '%s'. Exit code: %d", cmd.Command, exitCode)
 			return fmt.Errorf("Exit code:%d", exitCode)
 		}
 	}
@@ -127,4 +138,20 @@ func (c *Client) DestroyContainer(container *lxc.Container) error {
 		return err
 	}
 	return container.Destroy()
+}
+
+func minimalEnv() []string {
+	return []string{
+		"SHELL=/bin/bash",
+		"USER=root",
+		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/go/bin:/opt/gospace/bin",
+		"PWD=/root",
+		"EDITOR=vim",
+		"LANG=en_US.UTF-8",
+		"HOME=/root",
+		"LANGUAGE=en_US",
+		"LOGNAME=root",
+		"GOPATH=/opt/gospace",
+		"GOROOT=/opt/go",
+	}
 }

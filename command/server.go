@@ -46,9 +46,15 @@ func (c *ServerCommand) readConfig() *server.Config {
 }
 
 func (c *ServerCommand) setup(config *server.Config) error {
+	if err := os.MkdirAll(filepath.Join(config.DataDir, "artifacts"), 0777); err != nil {
+
+		log.Errorln(err)
+		return err
+	}
 	db, err := bolt.Open(filepath.Join(config.DataDir, "gypsy.db"), 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		log.Errorln(err)
+		return err
 	}
 	db.Update(func(tx *bolt.Tx) error {
 		if _, err := tx.CreateBucketIfNotExists([]byte("pipelines")); err != nil {
