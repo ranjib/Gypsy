@@ -45,6 +45,10 @@ func (s *HttpServer) registerHandlers() {
 	s.router.HandleFunc("/pipelines/{pipeline_name}/runs", s.CreateRun).Methods("PUT")
 	s.router.HandleFunc("/pipelines/{pipeline_name}/runs/{run_id}", s.UpdateRun).Methods("POST")
 	s.router.HandleFunc("/pipelines/{pipeline_name}/runs/{run_id}", s.DeleteRun).Methods("DELETE")
+	s.router.HandleFunc("/pipelines/{pipeline_name}/artifacts", s.ListArtifacts).Methods("GET")
+	s.router.HandleFunc("/pipelines/{pipeline_name}/artifacts/{artifact_id}", s.DownloadArtifact).Methods("GET")
+	s.router.HandleFunc("/pipelines/{pipeline_name}/artifacts", s.UploadArtifact).Methods("PUT")
+	s.router.HandleFunc("/pipelines/{pipeline_name}/artifacts/{artifact_id}", s.DeleteArtifact).Methods("DELETE")
 }
 
 func (s *HttpServer) Shutdown() {

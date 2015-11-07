@@ -61,6 +61,10 @@ func (c *ServerCommand) setup(config *server.Config) error {
 			log.Errorln(err)
 			return err
 		}
+		if _, err := tx.CreateBucketIfNotExists([]byte("artifacts")); err != nil {
+			log.Errorln(err)
+			return err
+		}
 		if _, err := tx.CreateBucketIfNotExists([]byte("pollingStatus")); err != nil {
 			log.Errorln(err)
 			return err
