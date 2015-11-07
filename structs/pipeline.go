@@ -11,10 +11,15 @@ type Artifact struct {
 	Name string
 }
 
+type Command struct {
+	Command string
+	Cwd     string
+}
+
 type Pipeline struct {
 	Name      string
 	Materials []Material
 	Artifacts []Artifact
-	Scripts   []string
+	Scripts   []Command
 	Container string
 }
