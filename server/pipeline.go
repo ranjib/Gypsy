@@ -86,8 +86,8 @@ func (s *HttpServer) CreatePipeline(resp http.ResponseWriter, req *http.Request)
 		return b.Put([]byte(pipeline.Name), body)
 	})
 	if err1 != nil {
-		log.Warnf("Failed to create pipeline: %v", err)
-		http.Error(resp, err.Error(), http.StatusInternalServerError)
+		log.Warnf("Failed to create pipeline: %v", err1)
+		http.Error(resp, err1.Error(), http.StatusInternalServerError)
 		return
 	}
 }
