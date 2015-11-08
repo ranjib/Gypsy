@@ -1,20 +1,28 @@
 package server
 
 import (
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"github.com/boltdb/bolt"
 	"github.com/gorilla/mux"
+	"github.com/ranjib/gypsy/util"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 )
 
+// REST: /pipelines/{pipeline_name}/runs/{run_id}/artifacts
 func (s *HttpServer) ListArtifacts(resp http.ResponseWriter, req *http.Request) {
-	artifacts := []int{}
+	artifacts := []string{}
 	p := mux.Vars(req)["pipeline_name"]
+	r := mux.Vars(req)["run_id"]
+	i, e := strconv.Atoi(r)
+	if e != nil {
+		log.Warnf("Failed to convert run id %s for pipeline '%s'. Error: %v", r, p, e)
+		http.Error(resp, e.Error(), http.StatusBadRequest)
+		return
+	}
 	err := s.db.View(func(tx *bolt.Tx) error {
 		a := tx.Bucket([]byte("artifacts"))
 		if a == nil {
@@ -26,9 +34,14 @@ func (s *HttpServer) ListArtifacts(resp http.ResponseWriter, req *http.Request) 
 			log.Errorf("Artifact bucket for pipeline %s not found", p)
 			return fmt.Errorf("Artifact bucket for pipeline %s not found", p)
 		}
-		c := b.Cursor()
+		runBucket := b.Bucket(util.Itob(uint64(i)))
+		if runBucket == nil {
+			log.Errorf("Sub0bucket for pipeline %s's run id %d  not found", p, i)
+			return fmt.Errorf("Sub0bucket for pipeline %s's run id %d  not found", p, i)
+		}
+		c := runBucket.Cursor()
 		for k, _ := c.First(); k != nil; k, _ = c.Next() {
-			artifacts = append(artifacts, int(btoi(k)))
+			artifacts = append(artifacts, string(k[:]))
 		}
 		log.Printf("List of artifacts %v", artifacts)
 		return nil
@@ -48,9 +61,17 @@ func (s *HttpServer) ListArtifacts(resp http.ResponseWriter, req *http.Request) 
 	resp.Write(js)
 }
 
+//REST: /pipelines/{pipeline_name}/runs/{run_id}/artifacts/{artifact_name}
 func (s *HttpServer) DownloadArtifact(resp http.ResponseWriter, req *http.Request) {
 	p := mux.Vars(req)["pipeline_name"]
-	a := mux.Vars(req)["artifact_id"]
+	a := mux.Vars(req)["artifact_name"]
+	r := mux.Vars(req)["run_id"]
+	i, e := strconv.Atoi(r)
+	if e != nil {
+		log.Warnf("Failed to convert run id %s for pipeline '%s'. Error: %v", r, p, e)
+		http.Error(resp, e.Error(), http.StatusBadRequest)
+		return
+	}
 	var artifact []byte
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("artifacts"))
@@ -63,12 +84,17 @@ func (s *HttpServer) DownloadArtifact(resp http.ResponseWriter, req *http.Reques
 			log.Errorf("Artifacts bucket for pipeline %s not found", p)
 			return fmt.Errorf("Artifact bucket for pipeline %s not found", p)
 		}
+		runBucket := pipeline.Bucket(util.Itob(uint64(i)))
+		if runBucket == nil {
+			log.Errorf("Artifact bucket for pipeline %s for run id %d not found", p, i)
+			return fmt.Errorf("Artifact bucket for pipeline %s for run id %d not found", p, i)
+		}
 		log.Printf("Fetching artifact %s for pipeline %s", a, p)
 		artifact = pipeline.Get([]byte(a))
 		return nil
 	})
 	if err != nil {
-		log.Warnf("Failed to show pipeline: %v", err)
+		log.Warnf("Failed to fetch artifact : %v", err)
 		http.Error(resp, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -82,8 +108,17 @@ func (s *HttpServer) DownloadArtifact(resp http.ResponseWriter, req *http.Reques
 	resp.Write(artifact)
 }
 
+// REST: 	/pipelines/{pipeline_name}/runs/{run_id}/artifacts/{artifact_name}
 func (s *HttpServer) UploadArtifact(resp http.ResponseWriter, req *http.Request) {
 	p := mux.Vars(req)["pipeline_name"]
+	r := mux.Vars(req)["run_id"]
+	a := mux.Vars(req)["artifact_name"]
+	i, err := strconv.Atoi(r)
+	if err != nil {
+		log.Warnf("Failed to convert run id %s for pipeline '%s'. Error: %v", r, p, err)
+		http.Error(resp, err.Error(), http.StatusBadRequest)
+		return
+	}
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		log.Warnf("Failed to read request body : %v", err)
@@ -101,13 +136,13 @@ func (s *HttpServer) UploadArtifact(resp http.ResponseWriter, req *http.Request)
 			log.Errorf("Failed to create sub-bucket for pipeline %s under artifacts bucket. Error:%v", p, err)
 			return err
 		}
-		if pipeline == nil {
-			log.Errorf("Artifacts bucket for pipeline %s could not be created", p)
-			return fmt.Errorf("Artifact bucket for pipeline %s could not be created", p)
+		runBucket, err := pipeline.CreateBucketIfNotExists(util.Itob(uint64(i)))
+		if err != nil {
+			log.Errorf("Failed to create sub-bucket for pipeline %s under artifacts bucket. Error:%v", p, err)
+			return err
 		}
-		id, _ := pipeline.NextSequence()
-		log.Printf("Saving artifact '%d' for pipeline: %s", int(id), p)
-		return pipeline.Put(itob(id), body)
+		log.Printf("Saving artifact '%s' for pipeline: %s run id %d", a, p, i)
+		return runBucket.Put([]byte(a), body)
 	})
 	if err1 != nil {
 		log.Warnf("Failed to save artifact: %v", err1)
@@ -116,13 +151,15 @@ func (s *HttpServer) UploadArtifact(resp http.ResponseWriter, req *http.Request)
 	}
 }
 
+// REST: /pipelines/{pipeline_name}/runs/{run_id}/artifacts/{artifact_name}
 func (s *HttpServer) DeleteArtifact(resp http.ResponseWriter, req *http.Request) {
 	p := mux.Vars(req)["pipeline_name"]
-	a := mux.Vars(req)["artifact_id"]
-	i, err1 := strconv.Atoi(a)
-	if err1 != nil {
-		log.Warnf("Failed to convert artifact if %s for pipeline '%s'. Error: %v", a, p, err1)
-		http.Error(resp, err1.Error(), http.StatusBadRequest)
+	r := mux.Vars(req)["run_id"]
+	a := mux.Vars(req)["artifact_name"]
+	i, e := strconv.Atoi(r)
+	if e != nil {
+		log.Warnf("Failed to convert run id %s for pipeline '%s'. Error: %v", r, p, e)
+		http.Error(resp, e.Error(), http.StatusBadRequest)
 		return
 	}
 	err := s.db.Update(func(tx *bolt.Tx) error {
@@ -137,21 +174,11 @@ func (s *HttpServer) DeleteArtifact(resp http.ResponseWriter, req *http.Request)
 			return fmt.Errorf("Artifact bucket for pipeline %s was not found", p)
 		}
 		log.Printf("Deleting artifact '%s' for pipeline: %s", a, p)
-		return b.Delete(itob(uint64(i)))
+		return pipeline.Delete(util.Itob(uint64(i)))
 	})
 	if err != nil {
 		log.Warnf("Failed to delete artifact '%s' for pipeline '%s'. Error: %v", a, p, err)
 		http.Error(resp, err.Error(), http.StatusInternalServerError)
 		return
 	}
-}
-
-func itob(i uint64) []byte {
-	v := make([]byte, 8)
-	binary.BigEndian.PutUint64(v, i)
-	return v
-}
-
-func btoi(b []byte) uint64 {
-	return binary.BigEndian.Uint64(b)
 }

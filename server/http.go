@@ -35,20 +35,24 @@ func NewHttpServer(addr string, db *bolt.DB) (*HttpServer, error) {
 }
 
 func (s *HttpServer) registerHandlers() {
+	// Pipeline API
 	s.router.HandleFunc("/pipelines", s.ListPipelines).Methods("GET")
 	s.router.HandleFunc("/pipelines/{pipeline_name}", s.ShowPipeline).Methods("GET")
 	s.router.HandleFunc("/pipelines", s.CreatePipeline).Methods("PUT")
 	s.router.HandleFunc("/pipelines/{pipeline_name}", s.DeletePipeline).Methods("DELETE")
 	s.router.HandleFunc("/pipelines/{pipeline_name}", s.UpdatePipeline).Methods("POST")
+
+	// Run API
 	s.router.HandleFunc("/pipelines/{pipeline_name}/runs", s.ListRuns).Methods("GET")
 	s.router.HandleFunc("/pipelines/{pipeline_name}/runs/{run_id}", s.ShowRun).Methods("GET")
 	s.router.HandleFunc("/pipelines/{pipeline_name}/runs", s.CreateRun).Methods("PUT")
-	s.router.HandleFunc("/pipelines/{pipeline_name}/runs/{run_id}", s.UpdateRun).Methods("POST")
 	s.router.HandleFunc("/pipelines/{pipeline_name}/runs/{run_id}", s.DeleteRun).Methods("DELETE")
-	s.router.HandleFunc("/pipelines/{pipeline_name}/artifacts", s.ListArtifacts).Methods("GET")
-	s.router.HandleFunc("/pipelines/{pipeline_name}/artifacts/{artifact_id}", s.DownloadArtifact).Methods("GET")
-	s.router.HandleFunc("/pipelines/{pipeline_name}/artifacts", s.UploadArtifact).Methods("PUT")
-	s.router.HandleFunc("/pipelines/{pipeline_name}/artifacts/{artifact_id}", s.DeleteArtifact).Methods("DELETE")
+
+	// Artifact API
+	s.router.HandleFunc("/pipelines/{pipeline_name}/runs/{run_id}/artifacts", s.ListArtifacts).Methods("GET")
+	s.router.HandleFunc("/pipelines/{pipeline_name}/runs/{run_id}/artifacts/{artifact_name}", s.DownloadArtifact).Methods("GET")
+	s.router.HandleFunc("/pipelines/{pipeline_name}/runs/{run_id}/artifacts/{artifact_name}", s.UploadArtifact).Methods("PUT")
+	s.router.HandleFunc("/pipelines/{pipeline_name}/runs/{run_id}/artifacts/{artifact_name}", s.DeleteArtifact).Methods("DELETE")
 }
 
 func (s *HttpServer) Shutdown() {

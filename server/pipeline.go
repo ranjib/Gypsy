@@ -11,6 +11,7 @@ import (
 	"net/http"
 )
 
+// REST: /pipelines
 func (s *HttpServer) ListPipelines(resp http.ResponseWriter, req *http.Request) {
 	pipelines := []string{}
 	err := s.db.View(func(tx *bolt.Tx) error {
@@ -37,6 +38,7 @@ func (s *HttpServer) ListPipelines(resp http.ResponseWriter, req *http.Request) 
 	resp.Write(js)
 }
 
+//REST: /pipelines/{pipeline_name}
 func (s *HttpServer) ShowPipeline(resp http.ResponseWriter, req *http.Request) {
 	p := mux.Vars(req)["pipeline_name"]
 	var pipeline []byte
@@ -60,6 +62,7 @@ func (s *HttpServer) ShowPipeline(resp http.ResponseWriter, req *http.Request) {
 	resp.Write(pipeline)
 }
 
+// REST: /pipelines
 func (s *HttpServer) CreatePipeline(resp http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
@@ -83,7 +86,12 @@ func (s *HttpServer) CreatePipeline(resp http.ResponseWriter, req *http.Request)
 	err1 := s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("pipelines"))
 		log.Printf("Creating pipeline: %s", pipeline.Name)
-		return b.Put([]byte(pipeline.Name), body)
+		if err := b.Put([]byte(pipeline.Name), body); err != nil {
+			return err
+		}
+		log.Printf("Creating 'runs' sub-bucket for pipeline: %s", pipeline.Name)
+		_, e := b.CreateBucket([]byte("runs"))
+		return e
 	})
 	if err1 != nil {
 		log.Warnf("Failed to create pipeline: %v", err1)
@@ -92,6 +100,7 @@ func (s *HttpServer) CreatePipeline(resp http.ResponseWriter, req *http.Request)
 	}
 }
 
+// REST: /pipelines/{pipeline_name}
 func (s *HttpServer) DeletePipeline(resp http.ResponseWriter, req *http.Request) {
 	p := mux.Vars(req)["pipeline_name"]
 	err := s.db.Update(func(tx *bolt.Tx) error {
@@ -106,6 +115,7 @@ func (s *HttpServer) DeletePipeline(resp http.ResponseWriter, req *http.Request)
 	}
 }
 
+// REST: /pipelines/{pipeline_name}
 func (s *HttpServer) UpdatePipeline(resp http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	p := vars["pipeline_name"]
