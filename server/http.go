@@ -45,7 +45,7 @@ func (s *HttpServer) registerHandlers() {
 	// Run API
 	s.router.HandleFunc("/pipelines/{pipeline_name}/runs", s.ListRuns).Methods("GET")
 	s.router.HandleFunc("/pipelines/{pipeline_name}/runs/{run_id}", s.ShowRun).Methods("GET")
-	s.router.HandleFunc("/pipelines/{pipeline_name}/runs", s.CreateRun).Methods("PUT")
+	s.router.HandleFunc("/pipelines/{pipeline_name}/runs/{run_id}", s.UpdateRun).Methods("POST")
 	s.router.HandleFunc("/pipelines/{pipeline_name}/runs/{run_id}", s.DeleteRun).Methods("DELETE")
 
 	// Artifact API

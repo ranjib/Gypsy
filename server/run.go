@@ -74,9 +74,16 @@ func (s *HttpServer) ShowRun(resp http.ResponseWriter, req *http.Request) {
 	resp.Write(run)
 }
 
-// REST: /pipelines/{pipeline_name}/runs
-func (s *HttpServer) CreateRun(resp http.ResponseWriter, req *http.Request) {
+// REST: /pipelines/{pipeline_name}/runs/{run_id}
+func (s *HttpServer) UpdateRun(resp http.ResponseWriter, req *http.Request) {
 	p := mux.Vars(req)["pipeline_name"]
+	r := mux.Vars(req)["run_id"]
+	i, err := strconv.Atoi(r)
+	if err != nil {
+		log.Warnf("Failed to convert run id %s for pipeline '%s'. Error: %v", r, p, err)
+		http.Error(resp, err.Error(), http.StatusBadRequest)
+		return
+	}
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		log.Warnf("Failed to read request body : %v", err)
@@ -90,15 +97,16 @@ func (s *HttpServer) CreateRun(resp http.ResponseWriter, req *http.Request) {
 		http.Error(resp, err.Error(), http.StatusBadRequest)
 		return
 	}
+	log.Infof("Run data validation succeeded, saving data")
 	err1 := s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("runs"))
+		log.Infof("Bucket '%s' will be created if not exist", p)
 		runBucket, e := b.CreateBucketIfNotExists([]byte(p))
 		if e != nil {
 			log.Errorln("Failed to create sub bucket")
 			return e
 		}
-		id, _ := runBucket.NextSequence()
-		return b.Put(util.Itob(id), body)
+		return runBucket.Put(util.Itob(uint64(i)), body)
 	})
 	if err1 != nil {
 		log.Warnf("Failed to store run details: %v", err1)

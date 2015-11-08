@@ -25,9 +25,9 @@ type Pipeline struct {
 }
 
 type Run struct {
-	ID           string `json:"id"`
+	ID           int    `json:"id"`
 	PipelineName string `json:"pipeline_name"`
 	Stdout       string `json:"stdout"`
 	Stderr       string `json:"stderr"`
-	Status       bool   `json:"status"`
+	Success      bool   `json:"success"`
 }
