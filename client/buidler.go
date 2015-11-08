@@ -1,28 +1,41 @@
 package client
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/ranjib/gypsy/structs"
 	"github.com/ranjib/gypsy/util"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/lxc/go-lxc.v2"
 	"gopkg.in/yaml.v2"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 type Client struct {
 	ServerURL string
+	Run       structs.Run
 }
 
-func NewClient(url string) *Client {
-	return &Client{ServerURL: url}
+func NewClient(url, name string, runId int) *Client {
+	return &Client{
+		ServerURL: url,
+		Run: structs.Run{
+			ID:           runId,
+			PipelineName: name,
+		},
+	}
 }
 
-func BuildPipeline(name string) int {
-	c := NewClient("http://127.0.0.1:5678")
+func BuildPipeline(name string, runId int) int {
+	c := NewClient("http://127.0.0.1:5678", name, runId)
 	pipeline, err1 := c.FetchPipeline(name)
 	if err1 != nil {
 		log.Errorf("Failed to fetch spec for pipeline %s. Error: %v", name, err1)
@@ -51,6 +64,8 @@ func BuildPipeline(name string) int {
 		log.Errorf("Failed to build pipeline %s. Error: %v", name, err)
 		return 1
 	}
+	c.Run.Success = true
+	c.PostRunData()
 	return 0
 }
 
@@ -105,6 +120,36 @@ func (c *Client) CreateContainer(original string) (*lxc.Container, error) {
 
 func (c *Client) PerformBuild(container *lxc.Container, commands []structs.Command) error {
 	for _, cmd := range commands {
+		var wg sync.WaitGroup
+		stdoutReader, stdoutWriter, err := os.Pipe()
+		outWriter := new(bytes.Buffer)
+		errWriter := new(bytes.Buffer)
+		if err != nil {
+			log.Errorf("Failed to create pipe: %v", err)
+			return err
+		}
+		stderrReader, stderrWriter, err := os.Pipe()
+		if err != nil {
+			log.Errorf("Failed to create pipe: %v", err)
+			return err
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := io.Copy(outWriter, stdoutReader)
+			if err != nil {
+				log.Errorf("Failed to copy stdout. Error: %v", err)
+			}
+		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := io.Copy(errWriter, stderrReader)
+			if err != nil {
+				log.Errorf("Failed to copy stderr. Error: %v", err)
+			}
+		}()
+
 		log.Infof("Executing command: '%s'", cmd.Command)
 		cwd := "/root"
 		if cmd.Cwd != "" {
@@ -112,9 +157,20 @@ func (c *Client) PerformBuild(container *lxc.Container, commands []structs.Comma
 		}
 		options := lxc.DefaultAttachOptions
 		options.Env = minimalEnv()
+		options.StdoutFd = stdoutWriter.Fd()
+		options.StderrFd = stderrWriter.Fd()
 		options.ClearEnv = true
 		options.Cwd = cwd
 		exitCode, err := container.RunCommandStatus(strings.Fields(cmd.Command), options)
+		if e := stdoutWriter.Close(); e != nil {
+			log.Errorf("Failed to close stdout pipe. Error: %v", e)
+		}
+		if e := stderrWriter.Close(); e != nil {
+			log.Errorf("Failed to close stderr pipe. Error: %v", e)
+		}
+		wg.Wait()
+		c.Run.Stdout = strings.Join([]string{c.Run.Stdout, outWriter.String()}, "\n")
+		c.Run.Stderr = strings.Join([]string{c.Run.Stderr, errWriter.String()}, "\n")
 		if err != nil {
 			log.Infof("Failed to execute command: '%s'. Error: %v", cmd.Command, err)
 			return err
@@ -129,6 +185,31 @@ func (c *Client) PerformBuild(container *lxc.Container, commands []structs.Comma
 
 func (c *Client) UploadArtifacts(container *lxc.Container, artifacts []structs.Artifact) error {
 	//TODO
+	return nil
+}
+
+func (c *Client) PostRunData() error {
+	httpClient := &http.Client{}
+	payload, err := json.Marshal(c.Run)
+	if err != nil {
+		log.Errorf("Failed to marshal run data. Error: %v", err)
+		return err
+	}
+	log.Info(string(payload[:]))
+	run_id := strconv.Itoa(c.Run.ID)
+	url := c.ServerURL + "/pipelines/" + c.Run.PipelineName + "/runs/" + run_id
+	log.Infof("Making http post request against '%s' with run data", url)
+	req, err := http.NewRequest("POST", url, bytes.NewReader(payload))
+	if err != nil {
+		log.Errorf("Failed to create http request. Error: %v", err)
+		return err
+	}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		log.Errorf("Failed to make http put request. Error: %v", err)
+		return err
+	}
+	defer resp.Body.Close()
 	return nil
 }
 

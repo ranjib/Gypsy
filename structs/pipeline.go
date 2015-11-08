@@ -23,3 +23,11 @@ type Pipeline struct {
 	Scripts   []Command
 	Container string
 }
+
+type Run struct {
+	ID           int    `json:"id"`
+	PipelineName string `json:"pipeline_name"`
+	Stdout       string `json:"stdout"`
+	Stderr       string `json:"stderr"`
+	Success      bool   `json:"success"`
+}
