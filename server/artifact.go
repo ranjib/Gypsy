@@ -63,6 +63,25 @@ func (s *HttpServer) ListArtifacts(resp http.ResponseWriter, req *http.Request) 
 	resp.Write(js)
 }
 
+func (s *HttpServer) artifactBucket(tx *bolt.Tx, pipeline string, runId int) (*bolt.Bucket, error) {
+	root := tx.Bucket([]byte("artifacts"))
+	if root == nil {
+		log.Errorf("Artifacts bucket not found")
+		return nil, fmt.Errorf("Artifacts bucket not found")
+	}
+	pipelineBucket := root.Bucket([]byte(pipeline))
+	if pipelineBucket == nil {
+		log.Errorf("Bucket not presesent artifacts/%s", pipeline)
+		return nil, fmt.Errorf("Bucket not presesent artifacts/%s", pipeline)
+	}
+	runBucket := pipelineBucket.Bucket(util.Itob(uint64(runId)))
+	if runBucket == nil {
+		log.Errorf("Bucket not presesent artifacts/%s/%d", pipeline, runId)
+		return nil, fmt.Errorf("Bucket not presesent artifacts/%s/%d", pipeline, runId)
+	}
+	return runBucket, nil
+}
+
 //REST: /pipelines/{pipeline_name}/runs/{run_id}/artifacts/{artifact_name}
 func (s *HttpServer) DownloadArtifact(resp http.ResponseWriter, req *http.Request) {
 	p := mux.Vars(req)["pipeline_name"]
@@ -74,25 +93,19 @@ func (s *HttpServer) DownloadArtifact(resp http.ResponseWriter, req *http.Reques
 		http.Error(resp, e.Error(), http.StatusBadRequest)
 		return
 	}
-	var artifact []byte
+	var artifactPath []byte
 	err := s.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte("artifacts"))
-		if b == nil {
-			log.Errorf("Artifacts bucket not found")
-			return fmt.Errorf("Artifacts bucket not found")
+		runBucket, e := s.artifactBucket(tx, p, i)
+		if e != nil {
+			log.Errorf("Failed to get bucket artifacts/%s/%d. Error: %v", p, i, e)
+			return e
 		}
-		pipeline := b.Bucket([]byte(p))
-		if pipeline == nil {
-			log.Errorf("Artifacts bucket for pipeline %s not found", p)
-			return fmt.Errorf("Artifact bucket for pipeline %s not found", p)
-		}
-		runBucket := pipeline.Bucket(util.Itob(uint64(i)))
 		if runBucket == nil {
-			log.Errorf("Artifact bucket for pipeline %s for run id %d not found", p, i)
+			log.Errorf("Failed to get bucket artifacts/%s/%d.", p, i)
 			return fmt.Errorf("Artifact bucket for pipeline %s for run id %d not found", p, i)
 		}
 		log.Printf("Fetching artifact %s for pipeline %s", a, p)
-		artifact = pipeline.Get([]byte(a))
+		artifactPath = runBucket.Get([]byte(a))
 		return nil
 	})
 	if err != nil {
@@ -100,14 +113,25 @@ func (s *HttpServer) DownloadArtifact(resp http.ResponseWriter, req *http.Reques
 		http.Error(resp, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if artifact == nil {
+	if artifactPath == nil {
 		log.Warnf("No artifact found")
 		http.Error(resp, "Not present", http.StatusNotFound)
 		return
 	}
 	resp.Header().Set("Content-Type", "application/octet-stream")
 	resp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s-artifact_%s", p, a))
-	resp.Write(artifact)
+	fi, err := os.Open(string(artifactPath[:]))
+	if err != nil {
+		log.Errorf("Failed to read artifact file %s. Error:%v", string(artifactPath[:]), err)
+		http.Error(resp, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	_, e1 := io.Copy(resp, fi)
+	if e1 != nil {
+		log.Errorf("Failed to copy artifact file %s. Error:%v", string(artifactPath[:]), e1)
+		http.Error(resp, e1.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 // REST: 	/pipelines/{pipeline_name}/runs/{run_id}/artifacts/{artifact_name}
