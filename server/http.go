@@ -9,13 +9,14 @@ import (
 )
 
 type HttpServer struct {
-	router   *mux.Router
-	listener net.Listener
-	addr     string
-	db       *bolt.DB
+	router           *mux.Router
+	listener         net.Listener
+	addr             string
+	db               *bolt.DB
+	artifactLocation string
 }
 
-func NewHttpServer(addr string, db *bolt.DB) (*HttpServer, error) {
+func NewHttpServer(addr, artifactDir string, db *bolt.DB) (*HttpServer, error) {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Warnf("Failed to create http listener object. Error: %v", err)
@@ -24,10 +25,11 @@ func NewHttpServer(addr string, db *bolt.DB) (*HttpServer, error) {
 	log.Printf("Gypsy server HTTP endpoint started on: %s", addr)
 	r := mux.NewRouter()
 	srv := &HttpServer{
-		router:   r,
-		listener: ln,
-		addr:     addr,
-		db:       db,
+		router:           r,
+		listener:         ln,
+		addr:             addr,
+		db:               db,
+		artifactLocation: artifactDir,
 	}
 	srv.registerHandlers()
 	go http.Serve(ln, r)
@@ -51,7 +53,7 @@ func (s *HttpServer) registerHandlers() {
 	// Artifact API
 	s.router.HandleFunc("/pipelines/{pipeline_name}/runs/{run_id}/artifacts", s.ListArtifacts).Methods("GET")
 	s.router.HandleFunc("/pipelines/{pipeline_name}/runs/{run_id}/artifacts/{artifact_name}", s.DownloadArtifact).Methods("GET")
-	s.router.HandleFunc("/pipelines/{pipeline_name}/runs/{run_id}/artifacts/{artifact_name}", s.UploadArtifact).Methods("PUT")
+	s.router.HandleFunc("/pipelines/{pipeline_name}/runs/{run_id}/artifacts/{artifact_name}", s.UploadArtifact).Methods("POST")
 	s.router.HandleFunc("/pipelines/{pipeline_name}/runs/{run_id}/artifacts/{artifact_name}", s.DeleteArtifact).Methods("DELETE")
 }
 

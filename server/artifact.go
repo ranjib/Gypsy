@@ -7,8 +7,10 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/ranjib/gypsy/util"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 )
 
@@ -110,6 +112,7 @@ func (s *HttpServer) DownloadArtifact(resp http.ResponseWriter, req *http.Reques
 
 // REST: 	/pipelines/{pipeline_name}/runs/{run_id}/artifacts/{artifact_name}
 func (s *HttpServer) UploadArtifact(resp http.ResponseWriter, req *http.Request) {
+	req.ParseMultipartForm(32 << 20)
 	p := mux.Vars(req)["pipeline_name"]
 	r := mux.Vars(req)["run_id"]
 	a := mux.Vars(req)["artifact_name"]
@@ -119,12 +122,35 @@ func (s *HttpServer) UploadArtifact(resp http.ResponseWriter, req *http.Request)
 		http.Error(resp, err.Error(), http.StatusBadRequest)
 		return
 	}
-	body, err := ioutil.ReadAll(req.Body)
+
+	file, handler, err := req.FormFile("artifact")
 	if err != nil {
-		log.Warnf("Failed to read request body : %v", err)
-		http.Error(resp, err.Error(), http.StatusInternalServerError)
+		log.Warnf("Failed in form file invocation '%s'. Error: %v", err)
+		http.Error(resp, err.Error(), http.StatusBadRequest)
 		return
 	}
+	defer file.Close()
+	fmt.Fprintf(resp, "%v", handler.Header)
+	artifactPath := filepath.Join(s.artifactLocation, p, r, a)
+	if e := os.MkdirAll(filepath.Dir(artifactPath), 0775); e != nil {
+		log.Errorf("Failed to create artifact directory %s. Error: %v", filepath.Dir(artifactPath), e)
+		http.Error(resp, e.Error(), http.StatusInternalServerError)
+		return
+	}
+	fw, e1 := os.OpenFile(artifactPath, os.O_WRONLY|os.O_CREATE, 0666)
+	if e1 != nil {
+		log.Warnf("Failed in create file '%s'. Error: %v", artifactPath, e1)
+		http.Error(resp, e1.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer fw.Close()
+	_, e := io.Copy(fw, file)
+	if e != nil {
+		log.Warnf("Failed in copy file '%s'. Error: %v", artifactPath, e)
+		http.Error(resp, e.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	err1 := s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("artifacts"))
 		if b == nil {
@@ -142,7 +168,7 @@ func (s *HttpServer) UploadArtifact(resp http.ResponseWriter, req *http.Request)
 			return err
 		}
 		log.Printf("Saving artifact '%s' for pipeline: %s run id %d", a, p, i)
-		return runBucket.Put([]byte(a), body)
+		return runBucket.Put([]byte(a), []byte(artifactPath))
 	})
 	if err1 != nil {
 		log.Warnf("Failed to save artifact: %v", err1)
