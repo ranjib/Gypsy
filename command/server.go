@@ -75,7 +75,7 @@ func (c *ServerCommand) setup(config *server.Config) error {
 		}
 		return nil
 	})
-	s, err := server.NewHttpServer(config.BindAddr, db)
+	s, err := server.NewHttpServer(config.BindAddr, config.ArtifactDir, db)
 	if err != nil {
 		log.Errorln(err)
 		return err

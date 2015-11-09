@@ -184,7 +184,14 @@ func (c *Client) PerformBuild(container *lxc.Container, commands []structs.Comma
 }
 
 func (c *Client) UploadArtifacts(container *lxc.Container, artifacts []structs.Artifact) error {
-	//TODO
+	for _, artifact := range artifacts {
+		url := c.ServerURL + "/pipelines/" + c.Run.PipelineName + "/runs/" + strconv.Itoa(c.Run.ID) + "/artifacts/" + artifact.Name
+		log.Infof("Making http post request against '%s' with run data", url)
+		if err := util.PostFileFromContainer(container, artifact.Path, url); err != nil {
+			log.Errorf("Failed to post artifact. Error: %v", err)
+			return err
+		}
+	}
 	return nil
 }
 
