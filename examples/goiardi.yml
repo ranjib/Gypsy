@@ -1,0 +1,11 @@
+---
+name: goiardi
+materials:
+  - type: github
+    uri: ctdk/goiardi
+container: go-1.5
+scripts:
+  - command: go get github.com/ctdk/goiardi
+artifacts:
+  - name: goiardi
+    path: /opt/gospace/bin/goiardi

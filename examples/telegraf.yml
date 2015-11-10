@@ -1,0 +1,15 @@
+---
+name: telegraf
+materials:
+  - type: github
+    uri: influxdb/telegraf
+container: go-1.5
+scripts:
+  - command: mkdir -p /opt/gospace/src/github.com/influxdb
+  - command: git clone https://github.com/influxdb/telegraf
+    cwd: /opt/gospace/src/github.com/influxdb
+  - command: make
+    cwd: /opt/gospace/src/github.com/influxdb/telegraf
+artifacts:
+  - name: telegraf
+    path: /opt/gospace/src/github.com/influxdb/telegraf/telegraf
