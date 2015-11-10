@@ -86,12 +86,7 @@ func (s *HttpServer) CreatePipeline(resp http.ResponseWriter, req *http.Request)
 	err1 := s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("pipelines"))
 		log.Printf("Creating pipeline: %s", pipeline.Name)
-		if err := b.Put([]byte(pipeline.Name), body); err != nil {
-			return err
-		}
-		log.Printf("Creating 'runs' sub-bucket for pipeline: %s", pipeline.Name)
-		_, e := b.CreateBucket([]byte("runs"))
-		return e
+		return b.Put([]byte(pipeline.Name), body)
 	})
 	if err1 != nil {
 		log.Warnf("Failed to create pipeline: %v", err1)
