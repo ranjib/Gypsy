@@ -1,0 +1,17 @@
+---
+name: influxdb
+materials:
+  - type: github
+    uri: influxdb/influxdb
+container: go-1.5
+scripts:
+  - command: mkdir -p /opt/gospace/src/github.com/influxdb
+  - command: git clone https://github.com/influxdb/influxdb
+    cwd: /opt/gospace/src/github.com/influxdb
+  - command: go get ./...
+    cwd: /opt/gospace/src/github.com/influxdb/influxdb
+  - command: go install ./...
+    cwd: /opt/gospace/src/github.com/influxdb/influxdb
+artifacts:
+  - name: influxd
+    path: /opt/gospace/bin/influxd
