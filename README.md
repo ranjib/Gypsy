@@ -14,6 +14,28 @@ Gypsy is under heavy development. Currently the http endpoint and LXC bits are i
 they can be run as an standalone CI system. Gypsy is heavily influenced by GoCD.
 
 
+### Usage
+
+- Build
+I am assuming you have golang development environment setup, as well as LXC configured (i use ubuntu 14.04)
+
+```
+go get github.com/ranjib/gypsy
+cd $GOPATH/src/github.com/ranjib/gypsy
+make
+```
+
+- Run
+```sh
+./gypsy server
+```
+
+- Upload a pipeline
+```
+curl -X PUT --data-binary @/tmp/telegraf.yml http://localhost:5678/pipelines
+```
+
+Theres a lot to do. But this is the MVP :-)
 ### Architecture
 
 Gypsy has two main components, server and client. Gypsy servers provide http end point to interact with gypsy,
