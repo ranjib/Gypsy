@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/boltdb/bolt"
 	"github.com/google/go-github/github"
+	builder "github.com/ranjib/gypsy/client"
 	"github.com/ranjib/gypsy/structs"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -88,14 +89,24 @@ func (p *Poller) checkGithubMaterial(pipeline structs.Pipeline, material structs
 	}
 	if prevSHA == nil || string(prevSHA[:]) != *ref.Object.SHA {
 		log.Infof("Current SHA (%s) is different than  previously built SHA(%s). Triggering build", *ref.Object.SHA, string(prevSHA[:]))
+		var runId uint64
 		err := p.db.Update(func(tx *bolt.Tx) error {
-			b := tx.Bucket([]byte("pollingStatus"))
-			return b.Put([]byte(pipeline.Name), []byte(*ref.Object.SHA))
+			status := tx.Bucket([]byte("pollingStatus"))
+			r := tx.Bucket([]byte("runs"))
+			p, e := r.CreateBucketIfNotExists([]byte(pipeline.Name))
+			if e != nil {
+				log.Errorf("Failed to create pipeline specific run bucket")
+				return e
+			}
+			runId, _ = p.NextSequence()
+			return status.Put([]byte(pipeline.Name), []byte(*ref.Object.SHA))
 		})
 		if err != nil {
 			log.Errorf("Failed to store current head SHA for pipeline: %s. Error: %v", pipeline.Name, err)
 			return
 		}
+		exitCode := builder.BuildPipeline(pipeline.Name, int(runId))
+		log.Infof("Build exit code: %d", exitCode)
 		return
 	}
 	log.Infof("Current SHA (%s) is same as previously built SHA. Skipping build", *ref.Object.SHA)
