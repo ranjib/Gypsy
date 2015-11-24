@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gypsy CI</title>
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css"
+      integrity="sha512-dTfge/zgoMYpP7QbHy4gWMEGsbsdZeCXz7irItjcC3sPUFtf0kuFbDz/ixG7ArTxmDjLXDmezHubeNikyKGVyQ=="
+      crossorigin="anonymous"
+    >
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css"
+      integrity="sha384-aUGj/X2zp5rLCbBxumKTCw2Z50WgIr1vs/PFN4praOTvYXWlVyh2UtNUU0KAUhAX"
+      crossorigin="anonymous"
+    >
+
+    <script
+      src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"
+      integrity="sha512-K1qjQ+NcF2TYO/eI3M6v8EiNYZfA95pQumfvcVrTHtwQVDG+aHRqLi/ETn2uB+1JqwYqVG3LIvdm9lj6imS/pQ=="
+      crossorigin="anonymous"
+     ></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script>
+        var curPl 
+        function showRuns(pl){
+          $.ajax({ url: "/pipelines/"+pl+"/runs", success: function(result){
+            ct = ""
+            $.each(result, function(idx, obj){
+              frag = "<tr><td onclick=showRunDetails(" + obj +");>"+obj+"</td></tr>"
+              ct+= frag
+            })
+            curPl = pl
+            $('#runsTable').html(ct)
+          }});
+          $('#pipelineDetail').show()
+        }
+
+        function showRunDetails(r){
+          $.ajax({ url: "/pipelines/"+curPl+"/runs/"+ r, success: function(obj){
+            ct = ""
+            ct+= "<div>ID:"+obj.id+"</div>"
+            ct+= "<div>Success:"+obj.success+"</div>"
+            ct+= "<div><div>Stdout</div>"
+            ct+= "<pre>"+obj.stdout+"</pre></div>"
+            ct+= "<div><div>Stderr</div>"
+            ct+= "<pre>"+obj.stderr+"</pre><div>"
+            $('#runsTable').html(ct)
+            }});
+            $('#runDetails').show()
+        }
+      $(function(){
+        $.ajax({ url: "/pipelines", success: function(result){
+          ct = ""
+          $.each(result, function(idx, obj){
+            ct+= "<div class='.col-md-12 pipeline' onclick=showRuns('"+obj+"');>"+obj+"</div>"
+          });
+          $('#pipelines').html(ct)
+        }});
+
+      });
+    </script>
+    <style>
+     .pipelineHeader {
+      font-size: 2em;
+      text-align: center;
+     }
+     .pipeline {
+      font-size: 1em; 
+      border: 1px solid black;
+     }
+    </style>
+  </head>
+  <body>
+    <div class=".col-md-12 pipelineHeader">
+    Pipelines
+    <div>
+    <div id="pipelines" class="container pipeline">
+    </div>
+    <div id="pipelineDetail" style="display:none" class="container">
+      Runs
+      <table id="runsTable" class="container">
+      </table>
+      <div id="runDetails" style="display:none" class="container">
+      </div>
+    </div>
+  </body>
+</html>
