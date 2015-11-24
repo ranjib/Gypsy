@@ -11,7 +11,6 @@ func main() {
 }
 
 func realMain(args []string, commands map[string]cli.CommandFactory) int {
-	log.Println("Everybody's here. Puke stinks like beer")
 	for _, arg := range args {
 		if arg == "-v" || arg == "-version" || arg == "--version" {
 			newArgs := make([]string, len(args)+1)
