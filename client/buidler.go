@@ -41,7 +41,22 @@ func BuildPipeline(name string, runId int) int {
 		log.Errorf("Failed to fetch spec for pipeline %s. Error: %v", name, err1)
 		return 1
 	}
+	//c.devBuild(name, pipeline)
+	c.nomadicBuild(name, pipeline)
 	log.Info("Successfully downloaded pipeline spec. Creating container for ", pipeline.Name)
+	return 0
+}
+
+func (c *Client) nomadicBuild(name string, pipeline *structs.Pipeline) int {
+	job, err := c.CreateNomadJob(name, pipeline)
+	if err != nil {
+		log.Errorf("Failed to create nomad job for pipeline %s. Error: %v", name, err)
+		return 1
+	}
+	return job.Run()
+}
+
+func (c *Client) devBuild(name string, pipeline *structs.Pipeline) int {
 	container, err := c.CreateContainer(pipeline.Container)
 	if err != nil {
 		log.Errorf("Failed to create container for pipeline %s build. Error: %v", name, err)
