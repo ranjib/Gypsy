@@ -8,6 +8,7 @@ import (
 	nomadStructs "github.com/hashicorp/nomad/nomad/structs"
 	"github.com/ranjib/gypsy/structs"
 	log "github.com/sirupsen/logrus"
+	"strconv"
 )
 
 type NomadJob struct {
@@ -15,8 +16,11 @@ type NomadJob struct {
 	Job      *nomadStructs.Job
 }
 
-func (c *Client) CreateNomadJob(name string, pipeline *structs.Pipeline) (*NomadJob, error) {
+func (c *Client) CreateNomadJob(pipeline *structs.Pipeline, runId int) (*NomadJob, error) {
 	config := make(map[string]interface{})
+	config["container"] = pipeline.Container
+	config["pipeline"] = pipeline.Name
+	config["run_id"] = strconv.Itoa(runId)
 	resources := &nomadStructs.Resources{
 		CPU:      1024,
 		MemoryMB: 128,

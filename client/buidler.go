@@ -42,15 +42,15 @@ func BuildPipeline(name string, runId int) int {
 		return 1
 	}
 	//c.devBuild(name, pipeline)
-	c.nomadicBuild(name, pipeline)
+	c.nomadicBuild(pipeline, runId)
 	log.Info("Successfully downloaded pipeline spec. Creating container for ", pipeline.Name)
 	return 0
 }
 
-func (c *Client) nomadicBuild(name string, pipeline *structs.Pipeline) int {
-	job, err := c.CreateNomadJob(name, pipeline)
+func (c *Client) nomadicBuild(pipeline *structs.Pipeline, runId int) int {
+	job, err := c.CreateNomadJob(pipeline, runId)
 	if err != nil {
-		log.Errorf("Failed to create nomad job for pipeline %s. Error: %v", name, err)
+		log.Errorf("Failed to create nomad job for pipeline %s. Error: %v", pipeline.Name, err)
 		return 1
 	}
 	return job.Run()
@@ -187,11 +187,11 @@ func (c *Client) PerformBuild(container *lxc.Container, commands []structs.Comma
 		c.Run.Stdout = strings.Join([]string{c.Run.Stdout, outWriter.String()}, "\n")
 		c.Run.Stderr = strings.Join([]string{c.Run.Stderr, errWriter.String()}, "\n")
 		if err != nil {
-			log.Infof("Failed to execute command: '%s'. Error: %v", cmd.Command, err)
+			log.Errorf("Failed to execute command: '%s'. Error: %v", cmd.Command, err)
 			return err
 		}
 		if exitCode != 0 {
-			log.Infof("Failed to execute command: '%s'. Exit code: %d", cmd.Command, exitCode)
+			log.Errorf("Failed to execute command: '%s'. Exit code: %d", cmd.Command, exitCode)
 			return fmt.Errorf("Exit code:%d", exitCode)
 		}
 	}
