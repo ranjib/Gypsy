@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"github.com/boltdb/bolt"
 	"github.com/gorilla/mux"
+	//	nomadStructs "github.com/hashicorp/nomad/nomad/structs"
 	"github.com/ranjib/gypsy/structs"
 	"github.com/ranjib/gypsy/util"
 	log "github.com/sirupsen/logrus"
+
 	"io/ioutil"
 	"net/http"
 	"strconv"
