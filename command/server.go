@@ -2,7 +2,6 @@ package command
 
 import (
 	"github.com/boltdb/bolt"
-	"github.com/mitchellh/cli"
 	"github.com/ranjib/gypsy/server"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -13,13 +12,13 @@ import (
 )
 
 type ServerCommand struct {
-	Ui         cli.Ui
+	Meta
 	httpServer *server.HttpServer
 	poller     *server.Poller
 }
 
 func (c *ServerCommand) Help() string {
-	return ""
+	return "gypsy server [-config gypsy.yml]"
 }
 
 func (c *ServerCommand) Synopsis() string {
@@ -27,7 +26,25 @@ func (c *ServerCommand) Synopsis() string {
 }
 
 func (c *ServerCommand) Run(args []string) int {
-	config := c.readConfig()
+	var configFile string
+	flags := c.Meta.FlagSet("server", FlagSetClient)
+	flags.StringVar(&configFile, "config", "", "")
+	flags.Usage = func() { c.Ui.Output(c.Help()) }
+	if err := flags.Parse(args); err != nil {
+		log.Errorf("Failed to parse cli arguments. Error: %s\n", err)
+		return 1
+	}
+	var config *server.Config
+	if configFile != "" {
+		var err error
+		config, err = server.ConfigFomeFile(configFile)
+		if err != nil {
+			log.Errorf("Failed to parse config file. Error: %s\n", err)
+			return 1
+		}
+	} else {
+		config = server.DefaultConfig()
+	}
 	if config == nil {
 		return 1
 	}
@@ -39,10 +56,6 @@ func (c *ServerCommand) Run(args []string) int {
 	}()
 	log.Println("Running Gypsy server")
 	return c.handleSignals()
-}
-
-func (c *ServerCommand) readConfig() *server.Config {
-	return server.DefaultConfig()
 }
 
 func (c *ServerCommand) setup(config *server.Config) error {
