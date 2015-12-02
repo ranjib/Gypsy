@@ -21,7 +21,7 @@ func Commands() map[string]cli.CommandFactory {
 		},
 		"server": func() (cli.Command, error) {
 			return &command.ServerCommand{
-				Ui: meta.Ui,
+				Meta: meta,
 			}, nil
 		},
 		"version": func() (cli.Command, error) {
