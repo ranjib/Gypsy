@@ -21,6 +21,7 @@ func (c *Client) CreateNomadJob(pipeline *structs.Pipeline, runId int) (*NomadJo
 	config["container"] = pipeline.Container
 	config["pipeline"] = pipeline.Name
 	config["run_id"] = strconv.Itoa(runId)
+	config["server_url"] = c.ServerURL
 	resources := &nomadStructs.Resources{
 		CPU:      1024,
 		MemoryMB: 128,
