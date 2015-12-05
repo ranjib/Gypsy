@@ -102,8 +102,7 @@ func (spec *Spec) Build() error {
 				return errors.New("No container has been created yet. Use FROM directive")
 			}
 			command := words[1:len(words)]
-			log.Infof("Words: %#v\n", words)
-			log.Infof("Attempting to execute: %#v\n", command)
+			log.Debugf("Attempting to execute: %#v\n", command)
 			if err := spec.runCommand(command); err != nil {
 				log.Errorf("Failed to run command inside container. Error: %s\n", err)
 				return err
@@ -149,8 +148,7 @@ func (spec *Spec) runCommand(command []string) error {
 	options := lxc.DefaultAttachOptions
 	options.Cwd = "/root"
 	options.Env = util.MinimalEnv()
-	//spec.State.Env...)
-	log.Infof("Exec environment: %#v\n", options.Env)
+	log.Debugf("Exec environment: %#v\n", options.Env)
 	rootfs := spec.State.Container.ConfigItem("lxc.rootfs")[0]
 	var buffer bytes.Buffer
 	buffer.WriteString("#!/bin/bash\n")
@@ -170,7 +168,7 @@ func (spec *Spec) runCommand(command []string) error {
 		return err
 	}
 
-	log.Infof("Executing:\n %s\n", buffer.String())
+	log.Debugf("Executing:\n %s\n", buffer.String())
 	exitCode, err := spec.State.Container.RunCommandStatus([]string{"/bin/bash", "/tmp/dockerfile.sh"}, options)
 	if err != nil {
 		log.Errorf("Failed to execute command: '%s'. Error: %v", command, err)
