@@ -27,14 +27,17 @@ make
 
 - Run
 ```sh
-./gypsy server
+gypsy server
 ```
 
 - Upload a pipeline
 ```
 curl -X PUT --data-binary @/tmp/telegraf.yml http://localhost:5678/pipelines
 ```
-
+- Build LXC containers from Dockerfile
+```
+gypsy dockerfile
+```
 Theres a lot to do. But this is the MVP :-)
 ### Architecture
 
