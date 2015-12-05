@@ -11,7 +11,24 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
+
+func MinimalEnv() []string {
+	return []string{
+		"SHELL=/bin/bash",
+		"USER=root",
+		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/go/bin:/opt/gospace/bin",
+		"PWD=/root",
+		"EDITOR=vim",
+		"LANG=en_US.UTF-8",
+		"HOME=/root",
+		"LANGUAGE=en_US",
+		"LOGNAME=root",
+		"GOPATH=/opt/gospace",
+		"GOROOT=/opt/go",
+	}
+}
 
 func PostFileFromContainer(ct *lxc.Container, src, url string) error {
 	uuid, err := UUID()
@@ -57,4 +74,29 @@ func PostFileFromContainer(ct *lxc.Container, src, url string) error {
 		return fmt.Errorf("Non 200 response from server. Return code: %d", resp.StatusCode)
 	}
 	return nil
+}
+func CloneAndStartContainer(original, cloned string) (*lxc.Container, error) {
+	orig, err := lxc.NewContainer(original)
+	if err != nil {
+		log.Errorf("Failed to initialize container object. Error: %v", err)
+		return nil, err
+	}
+	if err := orig.Clone(cloned, lxc.CloneOptions{}); err != nil {
+		log.Errorf("Failed to clone container %s as %s. Error: %v", original, cloned, err)
+		return nil, err
+	}
+	ct, err := lxc.NewContainer(cloned)
+	if err != nil {
+		log.Errorf("Failed to clone container %s as %s. Error: %v", original, cloned, err)
+	}
+	if err := ct.Start(); err != nil {
+		log.Errorf("Failed to start cloned container %s. Error: %v", cloned, err)
+		return nil, err
+	}
+	log.Infof("Created container named: %s. Waiting for ip allocation", cloned)
+	if _, err := ct.WaitIPAddresses(30 * time.Second); err != nil {
+		log.Errorf("Failed to while waiting to start the container %s. Error: %v", cloned, err)
+		return nil, err
+	}
+	return ct, nil
 }

@@ -24,6 +24,11 @@ func Commands() map[string]cli.CommandFactory {
 				Meta: meta,
 			}, nil
 		},
+		"dockerfile": func() (cli.Command, error) {
+			return &command.DockerfileCommand{
+				Meta: meta,
+			}, nil
+		},
 		"version": func() (cli.Command, error) {
 			return &command.VersionCommand{
 				Revision:         GitCommit,

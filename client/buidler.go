@@ -16,7 +16,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 )
 
 type Client struct {
@@ -110,26 +109,11 @@ func (c *Client) CreateContainer(original string) (*lxc.Container, error) {
 		log.Errorf("Failed to generate uuid. Error: %v", err)
 		return nil, err
 	}
-	orig, err := lxc.NewContainer(original)
-	if err != nil {
-		log.Errorf("Failed to initialize container object. Error: %v", err)
-		return nil, err
-	}
-	if err := orig.Clone(cloned, lxc.CloneOptions{}); err != nil {
-		log.Errorf("Failed to clone container %s as %s. Error: %v", original, cloned, err)
-		return nil, err
-	}
-	ct, err := lxc.NewContainer(cloned)
+	ct, err := util.CloneAndStartContainer(original, cloned)
 	if err != nil {
 		log.Errorf("Failed to clone container %s as %s. Error: %v", original, cloned, err)
 		return nil, err
 	}
-	if err := ct.Start(); err != nil {
-		log.Errorf("Failed to start cloned container %s. Error: %v", cloned, err)
-		return nil, err
-	}
-	log.Infof("Created container named: %s. Waiting for ip allocation", cloned)
-	ct.WaitIPAddresses(30 * time.Second)
 	return ct, nil
 }
 
@@ -171,7 +155,7 @@ func (c *Client) PerformBuild(container *lxc.Container, commands []structs.Comma
 			cwd = cmd.Cwd
 		}
 		options := lxc.DefaultAttachOptions
-		options.Env = minimalEnv()
+		options.Env = util.MinimalEnv()
 		options.StdoutFd = stdoutWriter.Fd()
 		options.StderrFd = stderrWriter.Fd()
 		options.ClearEnv = true
@@ -241,20 +225,4 @@ func (c *Client) DestroyContainer(container *lxc.Container) error {
 		return err
 	}
 	return container.Destroy()
-}
-
-func minimalEnv() []string {
-	return []string{
-		"SHELL=/bin/bash",
-		"USER=root",
-		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/go/bin:/opt/gospace/bin",
-		"PWD=/root",
-		"EDITOR=vim",
-		"LANG=en_US.UTF-8",
-		"HOME=/root",
-		"LANGUAGE=en_US",
-		"LOGNAME=root",
-		"GOPATH=/opt/gospace",
-		"GOROOT=/opt/go",
-	}
 }
