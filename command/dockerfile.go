@@ -4,6 +4,9 @@ import (
 	"github.com/ranjib/gypsy/dockerfile"
 	"github.com/ranjib/gypsy/util"
 	log "github.com/sirupsen/logrus"
+	"io"
+	"os"
+	"strings"
 )
 
 type DockerfileCommand struct {
@@ -11,7 +14,12 @@ type DockerfileCommand struct {
 }
 
 func (c *DockerfileCommand) Help() string {
-	return "gypsy dockerfile [-file Dockerfile][-name ContainerName]"
+	helpString := `
+	Usage: gypsy dockerfile [-file Dockerfile][-name ContainerName]"
+
+	General Options:
+	` + generalOptionsUage()
+	return strings.TrimSpace(helpString)
 }
 
 func (c *DockerfileCommand) Synopsis() string {
@@ -29,6 +37,19 @@ func (c *DockerfileCommand) Run(args []string) int {
 		log.Errorf("Failed to parse cli arguments. Error: %s\n", err)
 		return 1
 	}
+	var logOutput io.Writer
+	if c.Meta.logOutput != "" {
+		fi, err := os.OpenFile(c.Meta.logOutput, os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Errorf("Failed to open log output file '%s'. Error: %s\n", c.Meta.logOutput, err)
+			return -1
+		}
+		defer fi.Close()
+		logOutput = fi
+	} else {
+		logOutput = os.Stdout
+	}
+	util.ConfigureLogging(c.Meta.logLevel, c.Meta.logFormat, logOutput)
 	if name == "" {
 		id, err := util.UUID()
 		if err != nil {

@@ -3,10 +3,13 @@ package command
 import (
 	"github.com/boltdb/bolt"
 	"github.com/ranjib/gypsy/server"
+	"github.com/ranjib/gypsy/util"
 	log "github.com/sirupsen/logrus"
+	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -18,7 +21,12 @@ type ServerCommand struct {
 }
 
 func (c *ServerCommand) Help() string {
-	return "gypsy server [-config gypsy.yml]"
+	helpText := `
+   Usage: gypsy server [-config gypsy.yml]"
+
+	 General Options:
+	` + generalOptionsUage()
+	return strings.TrimSpace(helpText)
 }
 
 func (c *ServerCommand) Synopsis() string {
@@ -27,13 +35,26 @@ func (c *ServerCommand) Synopsis() string {
 
 func (c *ServerCommand) Run(args []string) int {
 	var configFile string
-	flags := c.Meta.FlagSet("server", FlagSetClient)
+	flags := c.Meta.FlagSet("server", FlagSetLog)
 	flags.StringVar(&configFile, "config", "", "")
 	flags.Usage = func() { c.Ui.Output(c.Help()) }
 	if err := flags.Parse(args); err != nil {
 		log.Errorf("Failed to parse cli arguments. Error: %s\n", err)
 		return 1
 	}
+	var logOutput io.Writer
+	if c.Meta.logOutput != "" {
+		fi, err := os.OpenFile(c.Meta.logOutput, os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Errorf("Failed to open log output file '%s'. Error: %s\n", c.Meta.logOutput, err)
+			return -1
+		}
+		defer fi.Close()
+		logOutput = fi
+	} else {
+		logOutput = os.Stdout
+	}
+	util.ConfigureLogging(c.Meta.logLevel, c.Meta.logFormat, logOutput)
 	var config *server.Config
 	if configFile != "" {
 		var err error
