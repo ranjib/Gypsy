@@ -82,7 +82,6 @@ func (s *HttpServer) CreatePipeline(resp http.ResponseWriter, req *http.Request)
 		http.Error(resp, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	log.Println(req.FormValue("pipeline_name"))
 	err1 := s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("pipelines"))
 		log.Printf("Creating pipeline: %s", pipeline.Name)
