@@ -29,6 +29,26 @@ func Commands() map[string]cli.CommandFactory {
 				Meta: meta,
 			}, nil
 		},
+		"create-pipeline": func() (cli.Command, error) {
+			return &command.CreatePipelineCommand{
+				Meta: meta,
+			}, nil
+		},
+		"show-pipeline": func() (cli.Command, error) {
+			return &command.ShowPipelineCommand{
+				Meta: meta,
+			}, nil
+		},
+		"delete-pipeline": func() (cli.Command, error) {
+			return &command.DeletePipelineCommand{
+				Meta: meta,
+			}, nil
+		},
+		"list-pipelines": func() (cli.Command, error) {
+			return &command.ListPipelineCommand{
+				Meta: meta,
+			}, nil
+		},
 		"version": func() (cli.Command, error) {
 			return &command.VersionCommand{
 				Revision:         GitCommit,

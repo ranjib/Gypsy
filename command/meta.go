@@ -3,6 +3,7 @@ package command
 import (
 	"flag"
 	"github.com/mitchellh/cli"
+	"github.com/ranjib/gypsy/api"
 	"strings"
 )
 
@@ -33,6 +34,12 @@ func (m *Meta) FlagSet(n string, fs FlagSetFlags) *flag.FlagSet {
 		flags.StringVar(&m.address, "address", "http://localhost:5678", "-address <gypsy server>")
 	}
 	return flags
+}
+
+func (m *Meta) Client() (*api.Client, error) {
+	config := api.DefaultConfig()
+	config.Address = m.address
+	return api.NewClient(config)
 }
 
 func generalOptionsUage() string {

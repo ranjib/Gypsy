@@ -41,9 +41,9 @@ func (s *HttpServer) registerHandlers() {
 	s.router.PathPrefix("/static").Handler(http.StripPrefix("/static", http.FileServer(http.Dir("static/"))))
 	s.router.HandleFunc("/pipelines", s.ListPipelines).Methods("GET")
 	s.router.HandleFunc("/pipelines/{pipeline_name}", s.ShowPipeline).Methods("GET")
-	s.router.HandleFunc("/pipelines", s.CreatePipeline).Methods("PUT")
+	s.router.HandleFunc("/pipelines", s.CreatePipeline).Methods("POST")
 	s.router.HandleFunc("/pipelines/{pipeline_name}", s.DeletePipeline).Methods("DELETE")
-	s.router.HandleFunc("/pipelines/{pipeline_name}", s.UpdatePipeline).Methods("POST")
+	s.router.HandleFunc("/pipelines/{pipeline_name}", s.UpdatePipeline).Methods("PUT")
 
 	// Run API
 	s.router.HandleFunc("/pipelines/{pipeline_name}/runs", s.ListRuns).Methods("GET")

@@ -30,7 +30,6 @@ func ConfigureLogging(level, format string, output io.Writer) error {
 		log.SetFormatter(&log.TextFormatter{
 			TimestampFormat: time.RFC3339,
 			FullTimestamp:   true,
-			DisableColors:   true,
 		})
 	case "json":
 		log.SetFormatter(&log.JSONFormatter{
