@@ -1,4 +1,4 @@
-package client
+package build
 
 import (
 	"bytes"
@@ -16,7 +16,7 @@ type NomadJob struct {
 	Job      *nomadStructs.Job
 }
 
-func (c *Client) CreateNomadJob(pipeline *structs.Pipeline, runId int) (*NomadJob, error) {
+func (c *Builder) CreateNomadJob(pipeline *structs.Pipeline, runId int) (*NomadJob, error) {
 	config := make(map[string]interface{})
 	config["container"] = pipeline.Container
 	config["pipeline"] = pipeline.Name

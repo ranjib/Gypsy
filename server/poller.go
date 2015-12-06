@@ -3,7 +3,7 @@ package server
 import (
 	"github.com/boltdb/bolt"
 	"github.com/google/go-github/github"
-	builder "github.com/ranjib/gypsy/client"
+	"github.com/ranjib/gypsy/build"
 	"github.com/ranjib/gypsy/structs"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -105,7 +105,7 @@ func (p *Poller) checkGithubMaterial(pipeline structs.Pipeline, material structs
 			log.Errorf("Failed to store current head SHA for pipeline: %s. Error: %v", pipeline.Name, err)
 			return
 		}
-		exitCode := builder.BuildPipeline(pipeline.Name, int(runId))
+		exitCode := build.BuildPipeline(pipeline.Name, int(runId))
 		log.Infof("Build exit code: %d", exitCode)
 		return
 	}

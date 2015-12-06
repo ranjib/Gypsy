@@ -1,7 +1,7 @@
 package command
 
 import (
-	"github.com/ranjib/gypsy/client"
+	"github.com/ranjib/gypsy/build"
 	"github.com/ranjib/gypsy/util"
 	log "github.com/sirupsen/logrus"
 	"io"
@@ -9,24 +9,24 @@ import (
 	"strings"
 )
 
-type ClientCommand struct {
+type BuildCommand struct {
 	Meta
 }
 
-func (c *ClientCommand) Help() string {
+func (c *BuildCommand) Help() string {
 	helpText := `
-   Usage: gypsy client -pipeline PIPELINE_NAME -run_id RUN_ID
+   Usage: gypsy build PIPELINE_NAME -run_id RUN_ID
 
 	 General Options:
 	` + generalOptionsUage()
 	return strings.TrimSpace(helpText)
 }
 
-func (c *ClientCommand) Synopsis() string {
-	return "Runs gypsy client"
+func (c *BuildCommand) Synopsis() string {
+	return "Runs gypsy build agent"
 }
 
-func (c *ClientCommand) Run(args []string) int {
+func (c *BuildCommand) Run(args []string) int {
 	var pipelineName string
 	var runId int
 	flags := c.Meta.FlagSet("client", FlagSetClient)
@@ -58,5 +58,5 @@ func (c *ClientCommand) Run(args []string) int {
 		log.Errorf("Must provide a valid run id")
 		return 1
 	}
-	return client.BuildPipeline(pipelineName, runId)
+	return build.BuildPipeline(pipelineName, runId)
 }

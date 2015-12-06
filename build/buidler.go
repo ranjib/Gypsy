@@ -1,4 +1,4 @@
-package client
+package build
 
 import (
 	"bytes"
@@ -18,13 +18,13 @@ import (
 	"sync"
 )
 
-type Client struct {
+type Builder struct {
 	ServerURL string
 	Run       structs.Run
 }
 
-func NewClient(url, name string, runId int) *Client {
-	return &Client{
+func NewBuilder(url, name string, runId int) *Builder {
+	return &Builder{
 		ServerURL: url,
 		Run: structs.Run{
 			ID:           runId,
@@ -34,7 +34,7 @@ func NewClient(url, name string, runId int) *Client {
 }
 
 func BuildPipeline(name string, runId int) int {
-	c := NewClient("http://127.0.0.1:5678", name, runId)
+	c := NewBuilder("http://127.0.0.1:5678", name, runId)
 	pipeline, err1 := c.FetchPipeline(name)
 	if err1 != nil {
 		log.Errorf("Failed to fetch spec for pipeline %s. Error: %v", name, err1)
@@ -46,7 +46,7 @@ func BuildPipeline(name string, runId int) int {
 	return 0
 }
 
-func (c *Client) nomadicBuild(pipeline *structs.Pipeline, runId int) int {
+func (c *Builder) nomadicBuild(pipeline *structs.Pipeline, runId int) int {
 	job, err := c.CreateNomadJob(pipeline, runId)
 	if err != nil {
 		log.Errorf("Failed to create nomad job for pipeline %s. Error: %v", pipeline.Name, err)
@@ -55,7 +55,7 @@ func (c *Client) nomadicBuild(pipeline *structs.Pipeline, runId int) int {
 	return job.Run()
 }
 
-func (c *Client) devBuild(name string, pipeline *structs.Pipeline) int {
+func (c *Builder) devBuild(name string, pipeline *structs.Pipeline) int {
 	container, err := c.CreateContainer(pipeline.Container)
 	if err != nil {
 		log.Errorf("Failed to create container for pipeline %s build. Error: %v", name, err)
@@ -83,7 +83,7 @@ func (c *Client) devBuild(name string, pipeline *structs.Pipeline) int {
 	return 0
 }
 
-func (c *Client) FetchPipeline(name string) (*structs.Pipeline, error) {
+func (c *Builder) FetchPipeline(name string) (*structs.Pipeline, error) {
 	resp, err := http.Get(c.ServerURL + "/pipelines/" + name)
 	if err != nil {
 		log.Errorf("Failed to fetch pipeline spec from server. Error: %v", err)
@@ -103,7 +103,7 @@ func (c *Client) FetchPipeline(name string) (*structs.Pipeline, error) {
 	return pipeline, nil
 }
 
-func (c *Client) CreateContainer(original string) (*lxc.Container, error) {
+func (c *Builder) CreateContainer(original string) (*lxc.Container, error) {
 	cloned, err := util.UUID()
 	if err != nil {
 		log.Errorf("Failed to generate uuid. Error: %v", err)
@@ -117,7 +117,7 @@ func (c *Client) CreateContainer(original string) (*lxc.Container, error) {
 	return ct, nil
 }
 
-func (c *Client) PerformBuild(container *lxc.Container, commands []structs.Command) error {
+func (c *Builder) PerformBuild(container *lxc.Container, commands []structs.Command) error {
 	for _, cmd := range commands {
 		var wg sync.WaitGroup
 		stdoutReader, stdoutWriter, err := os.Pipe()
@@ -182,7 +182,7 @@ func (c *Client) PerformBuild(container *lxc.Container, commands []structs.Comma
 	return nil
 }
 
-func (c *Client) UploadArtifacts(container *lxc.Container, artifacts []structs.Artifact) error {
+func (c *Builder) UploadArtifacts(container *lxc.Container, artifacts []structs.Artifact) error {
 	for _, artifact := range artifacts {
 		url := c.ServerURL + "/pipelines/" + c.Run.PipelineName + "/runs/" + strconv.Itoa(c.Run.ID) + "/artifacts/" + artifact.Name
 		log.Infof("Making http post request against '%s' with run data", url)
@@ -194,7 +194,7 @@ func (c *Client) UploadArtifacts(container *lxc.Container, artifacts []structs.A
 	return nil
 }
 
-func (c *Client) PostRunData() error {
+func (c *Builder) PostRunData() error {
 	httpClient := &http.Client{}
 	payload, err := json.Marshal(c.Run)
 	if err != nil {
@@ -219,7 +219,7 @@ func (c *Client) PostRunData() error {
 	return nil
 }
 
-func (c *Client) DestroyContainer(container *lxc.Container) error {
+func (c *Builder) DestroyContainer(container *lxc.Container) error {
 	if err := container.Stop(); err != nil {
 		log.Errorf("Failed to stop container %s. Error: %v", container.Name(), err)
 		return err

@@ -14,8 +14,8 @@ func Commands() map[string]cli.CommandFactory {
 		},
 	}
 	return map[string]cli.CommandFactory{
-		"client": func() (cli.Command, error) {
-			return &command.ClientCommand{
+		"build": func() (cli.Command, error) {
+			return &command.BuildCommand{
 				Meta: meta,
 			}, nil
 		},
