@@ -59,7 +59,6 @@ func (s *HttpServer) ShowRun(resp http.ResponseWriter, req *http.Request) {
 		b := tx.Bucket([]byte("runs"))
 		runBucket := b.Bucket([]byte(p))
 		run = runBucket.Get(util.Itob(uint64(i)))
-		log.Printf("Run detail: %v", run)
 		return nil
 	})
 	if err1 != nil {

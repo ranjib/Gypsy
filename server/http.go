@@ -37,8 +37,12 @@ func NewHttpServer(addr, artifactDir string, db *bolt.DB) (*HttpServer, error) {
 }
 
 func (s *HttpServer) registerHandlers() {
+	//radiator
+	s.router.HandleFunc("/radiator", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "static/index.html")
+	}).Methods("GET")
+	//s.router.PathPrefix("/static").Handler(http.StripPrefix("/static", http.FileServer(http.Dir("static/"))))
 	// Pipeline API
-	s.router.PathPrefix("/static").Handler(http.StripPrefix("/static", http.FileServer(http.Dir("static/"))))
 	s.router.HandleFunc("/pipelines", s.ListPipelines).Methods("GET")
 	s.router.HandleFunc("/pipelines/{pipeline_name}", s.ShowPipeline).Methods("GET")
 	s.router.HandleFunc("/pipelines", s.CreatePipeline).Methods("POST")
