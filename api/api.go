@@ -1,3 +1,4 @@
+// Package api provides API client to interact with gypsy server
 package api
 
 import (

@@ -1,3 +1,4 @@
+// Package structs provides common data types for gypsy
 package structs
 
 type Material struct {

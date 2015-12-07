@@ -1,3 +1,4 @@
+// Package build implementes various pipeline building strategies
 package build
 
 import (

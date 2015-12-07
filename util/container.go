@@ -1,3 +1,4 @@
+// Package util provides utility methods for gypsy
 package util
 
 import (

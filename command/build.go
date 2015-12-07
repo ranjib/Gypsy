@@ -1,3 +1,4 @@
+// Package command encapsulates all gypsy command line interfaces
 package command
 
 import (
