@@ -1,3 +1,4 @@
+// Package dockerfile provides LXC container building gears from dockerfile like specification
 package dockerfile
 
 import (

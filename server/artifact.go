@@ -1,3 +1,4 @@
+// Package server encapsulates all gypsy server gears.
 package server
 
 import (
