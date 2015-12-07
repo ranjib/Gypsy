@@ -21,7 +21,7 @@ func realMain(args []string, commands map[string]cli.CommandFactory) int {
 		}
 	}
 	cmdNames := make([]string, 0, len(commands))
-	for cmdName, _ := range commands {
+	for cmdName := range commands {
 		cmdNames = append(cmdNames, cmdName)
 	}
 	cli := &cli.CLI{

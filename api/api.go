@@ -16,12 +16,14 @@ import (
 	"time"
 )
 
+// Config represent configuration for API endpoints
 type Config struct {
 	Address    string
 	WaitTime   time.Duration
 	HttpClient *http.Client
 }
 
+// DefaultConfig Obtain API config struct with default values
 func DefaultConfig() *Config {
 	config := &Config{
 		Address:    "http://localhost:5678",

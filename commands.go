@@ -6,6 +6,7 @@ import (
 	"os"
 )
 
+// Commands register all gypsy related commands
 func Commands() map[string]cli.CommandFactory {
 	meta := command.Meta{
 		Ui: &cli.BasicUi{

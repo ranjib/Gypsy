@@ -1,4 +1,4 @@
 ---
 data_dir: data
 artifact_dir: data/artifacts
-polling_frequency: 10000
+polling_frequency: 300
