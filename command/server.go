@@ -38,7 +38,7 @@ func (c *ServerCommand) Help() string {
    Usage: gypsy server [-config gypsy.yml]"
 
 	 General Options:
-	` + generalOptionsUage()
+	` + generalOptionsUsage()
 	return strings.TrimSpace(helpText)
 }
 

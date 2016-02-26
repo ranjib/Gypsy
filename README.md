@@ -14,6 +14,16 @@ Gypsy is under heavy development. Currently the http endpoint and LXC bits are i
 they can be run as an standalone CI system. Gypsy is heavily influenced by GoCD.
 
 
+### Prequisites
+
+You will need lxc
+
+```
+apt-get install lxc lxc-dev
+```
+
+You will need to have your [Golang development environment setup](https://golang.org/doc/code.html#Workspaces).
+
 ### Usage
 
 - Build

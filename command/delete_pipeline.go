@@ -30,7 +30,7 @@ func (c *DeletePipelineCommand) Help() string {
 	Usage: gypsy delete-pipeline <pipeline name>"
 
 	General Options:
-	` + generalOptionsUage()
+	` + generalOptionsUsage()
 	return strings.TrimSpace(helpString)
 }
 
