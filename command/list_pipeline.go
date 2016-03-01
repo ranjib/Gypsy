@@ -31,7 +31,7 @@ func (c *ListPipelineCommand) Help() string {
 	Usage: gypsy list-pipeline [gypsy.yml]"
 
 	General Options:
-	` + generalOptionsUage()
+	` + generalOptionsUsage()
 	return strings.TrimSpace(helpString)
 }
 

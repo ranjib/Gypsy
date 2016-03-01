@@ -55,7 +55,7 @@ func (m *Meta) Client() (*api.Client, error) {
 	return api.NewClient(config)
 }
 
-func generalOptionsUage() string {
+func generalOptionsUsage() string {
 	helpText := `
 	-address=<addr>
 		Address of gypsy server

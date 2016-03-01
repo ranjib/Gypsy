@@ -33,7 +33,7 @@ func (c *BuildCommand) Help() string {
    Usage: gypsy build PIPELINE_NAME -run_id RUN_ID
 
 	 General Options:
-	` + generalOptionsUage()
+	` + generalOptionsUsage()
 	return strings.TrimSpace(helpText)
 }
 

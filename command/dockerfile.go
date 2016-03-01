@@ -31,7 +31,7 @@ func (c *DockerfileCommand) Help() string {
 	Usage: gypsy dockerfile [-file Dockerfile][-name ContainerName]"
 
 	General Options:
-	` + generalOptionsUage()
+	` + generalOptionsUsage()
 	return strings.TrimSpace(helpString)
 }
 

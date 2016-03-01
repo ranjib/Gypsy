@@ -30,7 +30,7 @@ func (c *ShowPipelineCommand) Help() string {
 	Usage: gypsy show-pipeline <pipeline name>"
 
 	General Options:
-	` + generalOptionsUage()
+	` + generalOptionsUsage()
 	return strings.TrimSpace(helpString)
 }
 
